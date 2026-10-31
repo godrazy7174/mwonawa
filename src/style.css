@@ -160,6 +160,13 @@ a.bubble--me { text-decoration: none; font-weight: 700; display: inline-flex; al
 .tcard-go { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--fill-ink); color: var(--fill); font-size: 0.9375rem; }
 .tcard-main::after { content: ""; position: absolute; inset: -6px; border-radius: 26px; }
 .tcard-main { color: inherit; text-decoration: none; }
+.tcard--galae { grid-column: 1 / -1; --fill: var(--ink); --fill-ink: var(--paper); padding: 18px 20px 18px; }
+.tcard.tcard--galae .tcard-meta { flex-direction: row; align-items: center; justify-content: space-between; }
+.tcard-kicker { font-size: 0.8125rem; font-weight: 700; opacity: 0.8; }
+.fork { width: 120px; height: 44px; margin-bottom: 4px; }
+.fork path { fill: none; stroke-width: 6; stroke-linecap: round; }
+.fork .fork-a { stroke: var(--yolk); } .fork .fork-b { stroke: var(--mint); }
+.fork circle { fill: var(--fill-ink); stroke: var(--fill); stroke-width: 3; }
 .tcard-mine { position: relative; z-index: 1; align-self: flex-start; display: none; margin-top: 8px; font-size: 0.875rem; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .tcard.is-done .tcard-mine { display: inline-block; }
 .tcard-stamp {

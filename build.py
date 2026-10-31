@@ -28,7 +28,8 @@ from content.year2027 import TEST as YEAR  # noqa: E402
 from content import site as SITE_TEXT  # noqa: E402
 
 PREVIEW = bool(os.environ.get("PREVIEW"))
-BASE_URL = os.environ.get("BASE_URL", "https://godrazy7174.github.io/mwonawa/")
+BASE_URL = os.environ.get("BASE_URL", "https://godrazy7174.github.io/")
+GALAE_URL = "https://godrazy7174.github.io/galae/"
 if not BASE_URL.endswith("/"):
     BASE_URL += "/"
 ADSENSE_CLIENT = os.environ.get("ADSENSE_CLIENT", "").strip()
@@ -125,7 +126,8 @@ def head_meta(title, desc, path, og_image, og_title=None):
 HEADER = ('<header class="top"><a class="logo" href="index.html" aria-label="뭐나와 홈"><b>뭐나와</b></a>'
           '<a class="top-link" href="index.html#tests">테스트 목록</a></header>')
 FOOTER = ('<footer class="foot"><nav aria-label="사이트 정보"><a href="about.html">소개</a>'
-          '<a href="privacy.html">개인정보처리방침</a></nav>'
+          '<a href="privacy.html">개인정보처리방침</a>'
+          f'<a href="{GALAE_URL}">밸런스 게임 갈래</a></nav>'
           '<p>© 2026 뭐나와. 모든 테스트는 재미로 봐 주세요.</p></footer>')
 
 
@@ -180,6 +182,22 @@ def test_card(t, feature=False):
             "</div>")
 
 
+GALAE_ART = ('<svg class="fork" viewBox="0 0 120 44" aria-hidden="true">'
+             '<path d="M6 22 H46 C62 22 66 8 82 8 H114" class="fork-a"/>'
+             '<path d="M46 22 C62 22 66 36 82 36 H114" class="fork-b"/>'
+             '<circle cx="6" cy="22" r="5"/><circle cx="114" cy="8" r="5"/><circle cx="114" cy="36" r="5"/></svg>')
+
+
+def galae_card():
+    return (f'<div class="tcard tcard--galae sticker sticker--fill">'
+            f'{GALAE_ART}'
+            f'<p class="tcard-kicker">같이 운영하는 밸런스 게임</p>'
+            f'<h3 class="tcard-title"><a class="tcard-main" href="{GALAE_URL}">갈래</a></h3>'
+            f'<p class="tcard-sub">둘 중 하나만 고르는 밸런스 게임. 9개 주제 540문제를 풀면 내 선택이 지하철 노선도로 그려져요.</p>'
+            f'<p class="tcard-meta"><span>회원가입 없이 바로</span><span class="tcard-go" aria-hidden="true">하러 가기</span></p>'
+            "</div>")
+
+
 def type_grid(t, current=None):
     order = t["order"]
     cols = {12: "", 10: " cols-2", 20: " cols-4"}.get(len(order), "")
@@ -206,6 +224,7 @@ def build_home():
 {test_card(EMOJI, feature=True)}
 {test_card(CHAT)}
 {test_card(YEAR)}
+{galae_card()}
 </section>
 <section class="blurb">
   <h2>{e(H["about_title"])}</h2>
@@ -619,6 +638,9 @@ def write_misc():
     for path, pr in PAGES:
         loc = BASE_URL + ("" if path == "index.html" else path)
         urls.append(f"  <url><loc>{e(loc)}</loc><lastmod>{TODAY}</lastmod><priority>{pr}</priority></url>")
+    if GALAE_URL.startswith(BASE_URL) and GALAE_URL != BASE_URL:
+        # same host: the sister site can be listed in this sitemap
+        urls.append(f"  <url><loc>{e(GALAE_URL)}</loc><lastmod>{TODAY}</lastmod><priority>0.8</priority></url>")
     with open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                 + "\n".join(urls) + "\n</urlset>\n")
