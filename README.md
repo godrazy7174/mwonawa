@@ -11,7 +11,12 @@ python3 build.py                                   # build/site 생성
 ADSENSE_CLIENT=ca-pub-XXXX CUSTOM_DOMAIN=example.com BASE_URL=https://example.com/ python3 build.py
 ```
 
-배포 브랜치(`gh-pages`)에는 `build/site`의 결과물만 올라갑니다.
+## 배포
+
+- 사이트 주소: https://godrazy7174.github.io/
+- 배포: `python3 build.py` 결과물(`build/site`)을 `godrazy7174/godrazy7174.github.io` 저장소의 `main` 브랜치에 올림
+- 이 저장소의 `gh-pages` 브랜치: 옛 주소(`/mwonawa/`)를 새 주소로 보내는 이동 페이지 (`tools/redirects.py`로 생성)
+- 애드센스 승인 후: `ADSENSE_CLIENT=ca-pub-… python3 build.py`로 광고 코드와 ads.txt를 넣어 다시 배포
 
 ## 빌드 준비물
 
