@@ -467,7 +467,7 @@ def build_docs():
     P = SITE_TEXT.PRIVACY
     secs = []
     for h, ps in P["sections"]:
-        extra = contact_block() if h.startswith("6.") else ""
+        extra = contact_block() if "문의" in h else ""
         secs.append(f"<section><h2>{e(h)}</h2>{''.join(f'<p>{e(p)}</p>' for p in ps)}{extra}</section>")
     body = f'''<main class="wrap doc">
 <h1>{e(P["title"])}</h1>
