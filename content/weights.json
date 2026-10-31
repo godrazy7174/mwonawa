@@ -1,0 +1,28 @@
+{
+ "emoji": {
+  "melt": 1.101,
+  "salute": 0.943,
+  "cool": 1.097,
+  "teary": 0.95,
+  "zany": 1.023,
+  "upside": 0.918,
+  "sleep": 0.929,
+  "detective": 1.082,
+  "giggle": 0.952,
+  "steam": 1.125,
+  "party": 0.926,
+  "cloud": 0.953
+ },
+ "chat": {
+  "notice": 1.03,
+  "react": 0.914,
+  "meme": 0.92,
+  "ghost": 1.04,
+  "dawn": 0.925,
+  "sniper": 0.932,
+  "info": 1.083,
+  "tmi": 1.068,
+  "angel": 1.059,
+  "late": 1.03
+ }
+}
