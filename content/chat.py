@@ -15,6 +15,17 @@ TEST = {
     "minutes": 1,
     "cover": ["💬"],
     "result_label": "캐릭터",
+    "labels": {
+        "who_friend": "이 캐릭터가 나온 사람은",
+        "who_me": "단톡방 속 나의 캐릭터는",
+        "body": "이런 사람이야",
+        "moments": "단톡방에서 이런 모습",
+        "manual": "이 캐릭터와 단톡하는 법",
+        "best": "찰떡 단톡 메이트",
+        "worst": "환장의 조합",
+        "share": "단톡방 속 내 캐릭터는 ‘{name}’ {icon} 너는 뭐 나와?",
+        "list": "나올 수 있는 캐릭터 {n}가지",
+    },
     "questions": [
         {"q": "단톡방에 안 읽은 메시지가 300개 쌓여 있다.", "options": [
             ("처음부터 끝까지 정독한다", {"info": 1, "notice": 1, "dawn": 1}),

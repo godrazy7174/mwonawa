@@ -22,9 +22,7 @@ from datetime import date
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 
-from content.emoji import TEST as EMOJI  # noqa: E402
-from content.chat import TEST as CHAT  # noqa: E402
-from content.year2027 import TEST as YEAR  # noqa: E402
+from content.registry import load_tests, WIDE  # noqa: E402
 from content import site as SITE_TEXT  # noqa: E402
 
 PREVIEW = bool(os.environ.get("PREVIEW"))
@@ -41,11 +39,31 @@ OUT = os.path.join(ROOT, "build", "preview" if PREVIEW else "site")
 TODAY = date.today().isoformat()
 WEIGHTS = json.load(open(os.path.join(ROOT, "content", "weights.json"), encoding="utf-8"))
 
-TESTS = [EMOJI, CHAT, YEAR]
+TESTS = load_tests()
+BY_SLUG = {t["slug"]: t for t in TESTS}
+YEAR = BY_SLUG["2027"]
+QUIZZES = [t for t in TESTS if "questions" in t]
+LABEL_DEFAULTS = {
+    "who_friend": "이 결과가 나온 사람은", "who_me": "나의 결과는", "body": "이런 사람이야",
+    "moments": "이럴 때 딱 너야", "manual": "이 친구 사용설명서", "best": "찰떡 궁합", "worst": "상극",
+    "share": "{test} 결과는 ‘{name}’ {icon} 너는 뭐 나와?", "list": "나올 수 있는 결과 {n}가지", "match": "궁합",
+}
+
+
+def label(t, key, **kw):
+    text = t.get("labels", {}).get(key, LABEL_DEFAULTS[key])
+    return text.format(test=t["title"], n=len(t["order"]), **kw)
 CANVAS = {
     "yolk": {"fill": "#FFC93E", "ink": "#2B2200", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
     "mint": {"fill": "#63CFAB", "ink": "#04291D", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
     "lacquer": {"fill": "#DF402E", "ink": "#FFF4E2", "panel": "#FFF4E2", "panelInk": "#3A140F", "sub": "#7A3A2E", "accent": "#DF402E"},
+    "caramel": {"fill": "#E9A55C", "ink": "#2E1A05", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
+    "night": {"fill": "#33407A", "ink": "#F3F5FF", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#33407A"},
+    "matcha": {"fill": "#9BCB5E", "ink": "#1B2B06", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
+    "peach": {"fill": "#FF9E87", "ink": "#3D1006", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
+    "rose": {"fill": "#F584B0", "ink": "#3B0A1F", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
+    "sky": {"fill": "#67C1F2", "ink": "#052A40", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
+    "grape": {"fill": "#A890F2", "ink": "#1D1145", "panel": "#FFFFFF", "panelInk": "#1D2033", "sub": "#4E5470", "accent": "#1D2033"},
 }
 PAGES = []  # (path, priority) for sitemap
 
@@ -123,8 +141,12 @@ def head_meta(title, desc, path, og_image, og_title=None):
     return "\n".join(parts)
 
 
+SPEAKER = ('<svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/>'
+           '<path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="mute" d="M17 9l5 6M22 9l-5 6"/></svg>')
 HEADER = ('<header class="top"><a class="logo" href="index.html" aria-label="뭐나와 홈"><b>뭐나와</b></a>'
-          '<a class="top-link" href="index.html#tests">테스트 목록</a></header>')
+          '<div class="top-end">'
+          f'<button class="snd" id="snd" type="button" aria-pressed="true" aria-label="효과음" hidden>{SPEAKER}<span>소리 켬</span></button>'
+          '<a class="top-link" href="index.html#tests">테스트 목록</a></div></header>')
 FOOTER = ('<footer class="foot"><nav aria-label="사이트 정보"><a href="about.html">소개</a>'
           '<a href="privacy.html">개인정보처리방침</a>'
           f'<a href="{GALAE_URL}">밸런스 게임 갈래</a></nav>'
@@ -153,11 +175,11 @@ def json_script(id_, data):
 
 # ---------------------------------------------------------------- cards
 def card_art(t):
-    if t["slug"] == "emoji":
-        return '<div class="tcard-art">' + "".join(emo(c) for c in t["cover"]) + "</div>"
     if t["slug"] == "chat":
         return '<div class="mini-chat" aria-hidden="true"><span>다음 주 언제 돼?</span><span>📌 투표 올렸어</span></div>'
-    return '<div class="mini-deck" aria-hidden="true"><i></i><i></i><i></i></div>'
+    if t["slug"] == "2027":
+        return '<div class="mini-deck" aria-hidden="true"><i></i><i></i><i></i></div>'
+    return '<div class="tcard-art">' + "".join(emo(c) for c in t["cover"]) + "</div>"
 
 
 def meta_line(t):
@@ -170,8 +192,9 @@ def go_label(t):
     return "카드 뽑기" if t["slug"] == "2027" else "시작하기"
 
 
-def test_card(t, feature=False):
-    cls = "tcard sticker sticker--fill theme-" + t["theme"] + (" tcard--feature tape" if feature else "")
+def test_card(t, feature=False, wide=False):
+    cls = ("tcard sticker sticker--fill theme-" + t["theme"] + (" tcard--feature tape" if feature else "")
+           + (" tcard--wide" if wide else ""))
     return (f'<div class="{cls}" data-test="{e(t["slug"])}">'
             f'<span class="tcard-stamp" aria-hidden="true"></span>'
             f'{card_art(t)}'
@@ -213,17 +236,20 @@ def type_grid(t, current=None):
 # ---------------------------------------------------------------- home
 def build_home():
     H = SITE_TEXT.HOME
+    lead = TESTS[0]
+    lead_r = lead["results"][lead["order"][1]]
+    grid = [t for t in TESTS[1:] if t["slug"] not in WIDE]
+    wide = [t for t in TESTS[1:] if t["slug"] in WIDE]
+    cards = "\n".join([test_card(lead, feature=True)] + [test_card(t) for t in grid] + [test_card(t, wide=True) for t in wide])
     body = f'''<main class="wrap">
 <section class="hero" aria-labelledby="hero-title">
-  <p class="bubble bubble--friend">이 테스트 해 봤어? 나 {emo("🫠")} 녹는 중 나왔어</p>
+  <p class="bubble bubble--friend">이 테스트 해 봤어? 나 {emo(lead_r["icon"])} {e(lead_r["name"])} 나왔어</p>
   <h1 id="hero-title" class="bubble bubble--friend bubble--shout">너 뭐 나와?</h1>
-  <a class="bubble bubble--me" href="{test_file(EMOJI)}">잠깐만, 나도 해 볼게</a>
+  <a class="bubble bubble--me" href="{test_file(lead)}">잠깐만, 나도 해 볼게</a>
   <p class="lede">{e(H["lede"])}</p>
 </section>
 <section id="tests" class="tests" aria-label="테스트 목록">
-{test_card(EMOJI, feature=True)}
-{test_card(CHAT)}
-{test_card(YEAR)}
+{cards}
 {galae_card()}
 </section>
 <section class="blurb">
@@ -269,7 +295,7 @@ def build_quiz(t):
   </div>
 </section>
 <section class="typelist">
-  <h2 class="rsec-title">나올 수 있는 {e(t["result_label"])} {len(t["order"])}가지</h2>
+  <h2 class="rsec-title">{e(label(t, "list"))}</h2>
   {type_grid(t)}
 </section>
 {ad("test_bottom")}
@@ -313,13 +339,15 @@ def build_draw(t):
 
 
 # ---------------------------------------------------------------- result pages
-def others(t):
-    return [x for x in TESTS if x is not t]
+def others(t, n=4):
+    i = TESTS.index(t)
+    return [TESTS[(i + k) % len(TESTS)] for k in range(1, n + 1)]
 
 
 def more_tests(t):
     cards = "".join(test_card(x) for x in others(t))
-    return f'<section class="more"><h2 class="rsec-title">다른 테스트도 해 볼래?</h2><div class="tests">{cards}</div></section>'
+    return (f'<section class="more"><h2 class="rsec-title">다른 테스트도 해 볼래?</h2><div class="tests">{cards}</div>'
+            f'<a class="linkbtn more-all" href="index.html#tests">테스트 {len(TESTS)}개 모두 보기</a></section>')
 
 
 def share_block(t):
@@ -335,15 +363,13 @@ def share_block(t):
 
 
 def card_data(t, rid, r, facts=None):
-    if t["slug"] == "emoji":
-        share = f"이거 제 이모지야 {r['icon']} 나는 ‘{r['name']}’ 나왔어. 너는 뭐 나와?"
-        footer, kind = "너는 뭐 나와?", "emoji"
-    elif t["slug"] == "chat":
-        share = f"단톡방 속 내 캐릭터는 ‘{r['name']}’ {r['icon']} 너는 뭐 나와?"
-        footer, kind = "너는 뭐 나와?", "chat"
-    else:
+    if t["slug"] == "2027":
         share = f"2027년 내 키워드는 ‘{r['name']}’! 너도 한 장 뽑아 봐"
         footer, kind = "너도 한 장 뽑아 봐", "year"
+    else:
+        share = label(t, "share", name=r["name"], icon=r["icon"])
+        footer = "너는 어디 나와?" if t["slug"] == "trip" else "너는 뭐 나와?"
+        kind = "chat" if t["slug"] == "chat" else "emoji"
     return {
         "slug": t["slug"], "id": rid, "file": result_file(t, rid), "kind": kind,
         "name": r["name"], "icon": r.get("icon", ""), "stampIcon": r.get("icon") or "27",
@@ -369,18 +395,12 @@ def build_result(t, rid):
             f'<p class="bubble bubble--{"me" if who == "me" else "friend"}{" bubble--pic" if txt.startswith("[짤]") else ""}">{e(txt)}</p>'
             for who, txt in r["chat"])
         visual = f'<div class="chatmock" aria-label="단톡방에서 자주 하는 말">{bubbles}</div>'
-        moments_h = "단톡방에서 이런 모습"
-        manual_h = "이 캐릭터와 단톡하는 법"
-        who_friend = "이 캐릭터가 나온 사람은"
-        who_me = "단톡방 속 나의 캐릭터는"
     else:
         visual = f'<div class="rcard-icon">{emo(icon)}</div>'
-        moments_h = f"이럴 때 꼭 {icon}가 돼"
-        manual_h = f"{icon} 사용설명서"
-        who_friend = "이 이모지가 나온 사람은"
-        who_me = "나를 닮은 이모지는"
-    best_label = "찰떡 궁합" if t["slug"] == "emoji" else "찰떡 단톡 메이트"
-    worst_label = "상극" if t["slug"] == "emoji" else "환장의 조합"
+    moments_h = label(t, "moments", icon=icon, name=r["name"])
+    manual_h = label(t, "manual", icon=icon, name=r["name"])
+    who_friend, who_me = label(t, "who_friend"), label(t, "who_me")
+    best_label, worst_label = label(t, "best"), label(t, "worst")
     body = f'''<main class="wrap">
 <nav class="crumb" aria-label="이동"><a href="{test_file(t)}">{e(t["title"])}</a></nav>
 <p class="friend-note friend-only" id="friendNote">친구가 보낸 결과야. 너는 뭐 나올까?</p>
@@ -388,23 +408,25 @@ def build_result(t, rid):
   <div class="sticker sticker--fill rcard tape">
     <p class="rcard-who"><span class="friend-only">{who_friend}</span><span class="me-only" hidden>{who_me}</span></p>
     {visual}
-    <h1 class="rcard-name">{e(r["name"])}</h1>
+    <h1 class="rcard-name{" rcard-name--long" if len(r["name"]) > 6 else ""}">{e(r["name"])}</h1>
     <p class="rcard-tagline">{e(r["tagline"])}</p>
     <p class="rcard-tags">{" ".join("#" + e(x) for x in r["tags"])}</p>
   </div>
 </article>
 {share_block(t)}
 {ad("result_top")}
-<section class="rsec"><h2>이런 사람이야</h2>{"".join(f"<p>{e(p)}</p>" for p in r["body"])}</section>
+<section class="rsec"><h2>{e(label(t, "body"))}</h2>{"".join(f"<p>{e(p)}</p>" for p in r["body"])}</section>
 <section class="rsec"><h2>{e(moments_h)}</h2><ul>{"".join(f"<li>{e(m)}</li>" for m in r["moments"])}</ul></section>
 <section class="rsec"><h2>{e(manual_h)}</h2><ul>{"".join(f"<li>{e(m)}</li>" for m in r["manual"])}</ul></section>
-<section class="rsec"><h2>궁합</h2><div class="match">{match_card(t, best_label, r["best"])}{match_card(t, worst_label, r["worst"])}</div></section>
+<section class="rsec"><h2>{e(label(t, "match"))}</h2><div class="match">{match_card(t, best_label, r["best"])}{match_card(t, worst_label, r["worst"])}</div></section>
 {ad("result_bottom")}
 {more_tests(t)}
 <section class="typelist"><h2 class="rsec-title">{e(t["title"])} 결과 {len(t["order"])}가지</h2>{type_grid(t, rid)}</section>
 </main>'''
     desc = f"{t['title']} 결과 ‘{r['name']}’. {r['tagline']}. {r['body'][0].split('. ')[0]}."
     title = f"{r['name']} {icon} | {t['seo_title'].split(':')[0]} 결과 | 뭐나와"
+    if len(title) > 60:
+        title = f"{r['name']} {icon} | {t['title']} | 뭐나와"
     og_title = f"{icon} {r['name']} | {t['title']}"
     page(result_file(t, rid), title, desc, body, og_file(f"{t['slug']}-{rid}"), "theme-" + t["theme"],
          tail=json_script("card-data", card_data(t, rid, r)), og_title=og_title, priority="0.7")
@@ -530,6 +552,14 @@ def make_images():
         w = d.textlength(text, font=font)
         d.text((cx - w / 2, y), text, font=font, fill=fill)
 
+    def fitf(d, text, maker, start, smallest, maxw):
+        size = start
+        f = maker(size)
+        while d.textlength(text, font=f) > maxw and size > smallest:
+            size -= 2
+            f = maker(size)
+        return f
+
     def wrap(d, text, font, maxw):
         words, lines, line = text.split(" "), [], ""
         for w in words:
@@ -578,8 +608,9 @@ def make_images():
             for i, ch in enumerate(t["cover"]):
                 g = emoji_img(ch, 170)
                 im.alpha_composite(g, (x0 + i * 200 + (170 - g.width) // 2, 105))
-        ctext(d, 600, 320, t["title"], bagel(96), hexrgb(C["panelInk"]))
-        ctext(d, 600, 440, t["subtitle"], plex(40), hexrgb(C["sub"]))
+        tf = fitf(d, t["title"], bagel, 96, 56, 940)
+        ctext(d, 600, 320 + (96 - tf.size) // 2, t["title"], tf, hexrgb(C["panelInk"]))
+        ctext(d, 600, 440, t["subtitle"], fitf(d, t["subtitle"], lambda z: plex(z), 40, 26, 940), hexrgb(C["sub"]))
         ctext(d, 600, 560, "뭐나와", bagel(44), hexrgb(C["ink"]))
         save(im, og_file(t["slug"]))
 
@@ -598,12 +629,12 @@ def make_images():
             else:
                 g = emoji_img(r["icon"], 190)
                 im.alpha_composite(g, (600 - g.width // 2, 82))
-                name_font = bagel(104 if len(r["name"]) <= 5 else 90)
+                name_font = fitf(d, r["name"], bagel, 104, 60, 940)
                 ctext(d, 600, 286, r["name"], name_font, hexrgb(C["panelInk"]))
                 lines = wrap(d, r["tagline"], plex(40), 920)
                 for li, l in enumerate(lines[:2]):
                     ctext(d, 600, 418 + li * 52, l, plex(40), hexrgb(C["sub"]))
-            ctext(d, 600, 566, f"{t['title']}  |  뭐나와", plex(30, "Medium"), hexrgb(C["ink"]))
+            ctext(d, 600, 566, f"{t['title']}  |  뭐나와", fitf(d, f"{t['title']}  |  뭐나와", lambda z: plex(z, "Medium"), 30, 22, 1000), hexrgb(C["ink"]))
             save(im, og_file(f"{t['slug']}-{rid}"))
 
     # apple touch icon
@@ -662,13 +693,11 @@ def main():
     shutil.copy(os.path.join(ROOT, "src", "style.css"), OUT)
     shutil.copy(os.path.join(ROOT, "src", "app.js"), OUT)
     build_home()
-    build_quiz(EMOJI)
-    build_quiz(CHAT)
+    for t in QUIZZES:
+        build_quiz(t)
+        for rid in t["order"]:
+            build_result(t, rid)
     build_draw(YEAR)
-    for rid in EMOJI["order"]:
-        build_result(EMOJI, rid)
-    for rid in CHAT["order"]:
-        build_result(CHAT, rid)
     for rid in YEAR["order"]:
         build_year_result(YEAR, rid)
     build_docs()

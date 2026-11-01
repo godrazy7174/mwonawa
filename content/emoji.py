@@ -15,6 +15,17 @@ TEST = {
     "minutes": 1,
     "cover": ["🫠", "🫡", "😎"],
     "result_label": "이모지",
+    "labels": {
+        "who_friend": "이 이모지가 나온 사람은",
+        "who_me": "나를 닮은 이모지는",
+        "body": "이런 사람이야",
+        "moments": "이럴 때 꼭 {icon}가 돼",
+        "manual": "{icon} 사용설명서",
+        "best": "찰떡 궁합",
+        "worst": "상극",
+        "share": "이거 제 이모지야 {icon} 나는 ‘{name}’ 나왔어. 너는 뭐 나와?",
+        "list": "나올 수 있는 이모지 {n}가지",
+    },
     "questions": [
         {"q": "알람이 울렸다. 오늘 아침의 너는?", "options": [
             ("이미 일어나서 오늘 할 일 확인 중", {"salute": 2, "steam": 1}),

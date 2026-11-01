@@ -23,6 +23,123 @@
   };
   var DONE_KEY = "mwonawa:done";
 
+  /* ---------- sound ----------
+     Synthesized with Web Audio, no files. Every sound answers a tap.
+     pick: a sticker pop that climbs a major pentatonic scale question by question, so a whole test plays a little tune.
+     back: a softer, lower tock. start: a sticker being peeled off. stamp: the rubber stamp landing, then two bell notes.
+     flip: a card whoosh, then a small chime as it turns. shuffle: cards riffling. ok: a two-note blip when a link is copied. */
+  var SOUND_KEY = "mwonawa:sound";
+  var soundOn = store.get(SOUND_KEY, "on") !== "off";
+  var actx = null, noiseBuf = null;
+  function audio() {
+    if (!soundOn) return null;
+    try {
+      if (!actx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        actx = new AC();
+      }
+      if (actx.state === "suspended" && actx.resume) actx.resume();
+      return actx;
+    } catch (e) { return null; }
+  }
+  function envelope(c, t, peak, attack, decay) {
+    var g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    g.connect(c.destination);
+    return g;
+  }
+  function tone(c, t, type, f0, f1, peak, attack, decay) {
+    var o = c.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + attack + decay * 0.6);
+    o.connect(envelope(c, t, peak, attack, decay));
+    o.start(t);
+    o.stop(t + attack + decay + 0.05);
+  }
+  function hiss(c, t, dur, f0, f1, q, peak) {
+    if (!noiseBuf) {
+      noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate * 0.5), c.sampleRate);
+      var data = noiseBuf.getChannelData(0);
+      for (var k = 0; k < data.length; k++) data[k] = Math.random() * 2 - 1;
+    }
+    var src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    var f = c.createBiquadFilter();
+    f.type = "bandpass";
+    f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    src.connect(f);
+    f.connect(envelope(c, t, peak, 0.005, dur));
+    src.start(t);
+    src.stop(t + dur + 0.05);
+  }
+  var STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26];
+  var sfx = {
+    pick: function (step) {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.005, f = 523.25 * Math.pow(2, STEPS[Math.min(step, STEPS.length - 1)] / 12);
+      tone(c, t, "sine", f * 0.75, f * 1.5, 0.16, 0.004, 0.09);
+      tone(c, t + 0.012, "triangle", f * 2, f * 2, 0.03, 0.002, 0.05);
+    },
+    back: function () {
+      var c = audio(); if (!c) return;
+      tone(c, c.currentTime + 0.005, "triangle", 330, 220, 0.12, 0.003, 0.07);
+    },
+    start: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.005;
+      hiss(c, t, 0.16, 900, 5200, 0.9, 0.12);
+      tone(c, t + 0.14, "sine", 660, 1320, 0.1, 0.004, 0.08);
+    },
+    stamp: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.01;
+      tone(c, t, "sine", 170, 52, 0.42, 0.004, 0.22);
+      hiss(c, t, 0.08, 320, 160, 0.7, 0.22);
+      tone(c, t + 0.18, "triangle", 783.99, 783.99, 0.12, 0.004, 0.42);
+      tone(c, t + 0.32, "triangle", 1046.5, 1046.5, 0.12, 0.004, 0.6);
+    },
+    flip: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.005;
+      hiss(c, t, 0.22, 700, 3200, 1.2, 0.1);
+      [1046.5, 1318.5, 1568].forEach(function (f, k) { tone(c, t + 0.55 + k * 0.07, "sine", f, f, 0.09, 0.003, 0.35); });
+    },
+    shuffle: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.005;
+      for (var k = 0; k < 5; k++) hiss(c, t + k * 0.045, 0.035, 2400, 1800, 2, 0.08);
+    },
+    ok: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.005;
+      tone(c, t, "sine", 880, 880, 0.1, 0.003, 0.07);
+      tone(c, t + 0.07, "sine", 1318.5, 1318.5, 0.1, 0.003, 0.12);
+    }
+  };
+  function initSound() {
+    var b = document.getElementById("snd");
+    if (!b) return;
+    var label = $("span", b);
+    var paint = function () {
+      b.setAttribute("aria-pressed", soundOn ? "true" : "false");
+      label.textContent = soundOn ? "소리 켬" : "소리 끔";
+    };
+    paint();
+    b.hidden = false;
+    b.addEventListener("click", function () {
+      soundOn = !soundOn;
+      store.set(SOUND_KEY, soundOn ? "on" : "off");
+      paint();
+      sfx.ok();
+    });
+  }
+
   /* ---------- toast ---------- */
   var toastTimer = null;
   function toast(msg) {
@@ -69,7 +186,8 @@
     });
   }
   function copyText(text, okMsg) {
-    var done = function () { toast(okMsg || "링크를 복사했어요"); };
+    audio();
+    var done = function () { toast(okMsg || "링크를 복사했어요"); sfx.ok(); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(done, function () {
         if (legacyCopy(text)) done(); else showCopyField(text);
@@ -175,6 +293,7 @@
       if (busy) return;
       busy = true;
       answers[i] = ai;
+      sfx.pick(i);
       $$(".opt", opts).forEach(function (b) { b.classList.remove("is-picked"); });
       btn.classList.add("is-picked");
       setTimeout(function () {
@@ -190,11 +309,13 @@
       extras.forEach(function (el) { el.hidden = false; });
       var st = $(".stamp", doneBox);
       if (st && !reduced) { st.classList.remove("thud"); void st.offsetWidth; st.classList.add("thud"); }
+      sfx.stamp();
       see.focus({ preventScroll: true });
       doneBox.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
     }
     var extras = $$(".typelist, .ad");
     $("#start").addEventListener("click", function () {
+      sfx.start();
       extras.forEach(function (el) { el.hidden = true; });
       intro.hidden = true;
       qbox.hidden = false;
@@ -202,10 +323,10 @@
       render();
       qbox.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
     });
-    prev.addEventListener("click", function () { if (i > 0) { i--; render(); } });
+    prev.addEventListener("click", function () { if (i > 0) { sfx.back(); i--; render(); } });
     var restart = $("#restart");
     if (restart) restart.addEventListener("click", function () {
-      answers = []; i = 0; doneBox.hidden = true; qbox.hidden = false; render();
+      sfx.back(); answers = []; i = 0; doneBox.hidden = true; qbox.hidden = false; render();
     });
     qtext.setAttribute("tabindex", "-1");
   }
@@ -235,6 +356,7 @@
       card.addEventListener("click", function () {
         if (picked) return;
         picked = true;
+        sfx.flip();
         var key = data.order[Math.floor(Math.random() * data.order.length)];
         var r = data.results[key];
         var front = $(".card-front", card);
@@ -250,7 +372,7 @@
         setTimeout(function () { reveal.hidden = false; see.focus({ preventScroll: true }); }, reduced ? 0 : 650);
       });
     });
-    again.addEventListener("click", deal);
+    again.addEventListener("click", function () { sfx.shuffle(); deal(); });
     deal();
   }
 
@@ -294,7 +416,8 @@
 
     $("#btnShare").addEventListener("click", function () {
       if (navigator.share) {
-        navigator.share({ title: card.pageTitle, text: text, url: url }).catch(function (err) {
+        audio();
+        navigator.share({ title: card.pageTitle, text: text, url: url }).then(function () { sfx.ok(); }, function (err) {
           if (err && err.name === "AbortError") return;
           copyText(text + "\n" + url);
         });
@@ -303,7 +426,7 @@
       }
     });
     $("#btnCopy").addEventListener("click", function () { copyText(url); });
-    $("#btnImage").addEventListener("click", function () { saveImage(card, url); });
+    $("#btnImage").addEventListener("click", function () { audio(); saveImage(card, url); });
   }
 
   /* ---------- share image ---------- */
@@ -404,7 +527,9 @@
         g.fillText(card.icon, cx, top + 390);
       }
       g.fillStyle = C.panelInk;
-      g.font = "400 " + (card.name.length > 6 ? 104 : 126) + "px " + DISPLAY;
+      var nameSize = card.name.length > 6 ? 104 : 126;
+      g.font = "400 " + nameSize + "px " + DISPLAY;
+      while (g.measureText(card.name).width > pw - 100 && nameSize > 64) { nameSize -= 4; g.font = "400 " + nameSize + "px " + DISPLAY; }
       g.fillText(card.name, cx, yName);
       g.font = "700 46px " + BODY; g.fillStyle = C.panelInk;
       wrapLines(g, card.tagline, pw - 140).slice(0, 2).forEach(function (l, li) { g.fillText(l, cx, yTag + li * 60); });
@@ -469,6 +594,7 @@
 
   /* ---------- boot ---------- */
   function boot() {
+    initSound();
     if ($(".page-home")) initHome();
     var test = readJSON("test-data");
     if (test) initQuiz(test);
