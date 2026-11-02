@@ -70,15 +70,43 @@ def persona_mismatches(test, w):
     return bad
 
 
-def calibrate(test, iters=60):
+def _score(f, K):
+    # 가장 많이 벗어난 유형의 비율 오차가 1순위, 전체 제곱 오차가 2순위
+    d = f * K - 1
+    return (round(float(np.abs(d).max()), 4), float((d ** 2).sum()))
+
+
+def calibrate(test, iters=150):
+    """점수가 정수라 동점이 많아서 가중치를 조금만 바꿔도 분포가 계단처럼 튄다.
+    그래서 ① 곱셈 갱신을 하며 가장 좋았던 가중치를 기억하고 ② 그 지점에서 유형별로 조금씩 올리고 내려 보며 다듬는다."""
     K = len(test["order"])
     S, L = matrices(test, 120000, 11)
+
+    def share_of(w):
+        return np.bincount(decide(S, L, np.round(w, 3)), minlength=K) / len(S)
+
     w = np.ones(K)
-    for _ in range(iters):
-        f = np.bincount(decide(S, L, w), minlength=K) / len(S)
-        w *= (1.0 / K / np.maximum(f, 1e-4)) ** 0.15
+    best_w, best = w.copy(), _score(share_of(w), K)
+    for it in range(iters):
+        f = share_of(w)
+        s = _score(f, K)
+        if s < best:
+            best, best_w = s, w.copy()
+        w = w * (1.0 / K / np.maximum(f, 1e-4)) ** (0.2 * 0.98 ** it)
         w /= w.mean()
-    return np.round(w, 3)
+    w, step = best_w.copy(), 0.02
+    while step >= 0.002:
+        improved = False
+        for k in range(K):
+            for sign in (1, -1):
+                cand = w.copy()
+                cand[k] *= 1 + sign * step
+                s = _score(share_of(cand), K)
+                if s < best:
+                    best, w, improved = s, cand, True
+        if not improved:
+            step /= 2
+    return np.round(w / w.mean(), 3)
 
 
 def share(test, w):

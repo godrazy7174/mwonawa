@@ -78,11 +78,13 @@
     src.start(t);
     src.stop(t + dur + 0.05);
   }
-  var STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26];
+  // 도에서 두 옥타브 위 도까지. 문제 수가 몇 개든 첫 문제는 맨 아래, 마지막 문제는 맨 위 음이 나게 나눠 쓴다
+  var STEPS = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24];
   var sfx = {
-    pick: function (step) {
+    pick: function (step, total) {
       var c = audio(); if (!c) return;
-      var t = c.currentTime + 0.005, f = 523.25 * Math.pow(2, STEPS[Math.min(step, STEPS.length - 1)] / 12);
+      var top = STEPS.length - 1, k = total > 1 ? Math.round(step * top / (total - 1)) : 0;
+      var t = c.currentTime + 0.005, f = 523.25 * Math.pow(2, STEPS[Math.max(0, Math.min(k, top))] / 12);
       tone(c, t, "sine", f * 0.75, f * 1.5, 0.16, 0.004, 0.09);
       tone(c, t + 0.012, "triangle", f * 2, f * 2, 0.03, 0.002, 0.05);
     },
@@ -293,7 +295,7 @@
       if (busy) return;
       busy = true;
       answers[i] = ai;
-      sfx.pick(i);
+      sfx.pick(i, n);
       $$(".opt", opts).forEach(function (b) { b.classList.remove("is-picked"); });
       btn.classList.add("is-picked");
       setTimeout(function () {
