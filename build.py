@@ -24,6 +24,8 @@ sys.path.insert(0, ROOT)
 
 from content.registry import load_tests, WIDE  # noqa: E402
 from content import site as SITE_TEXT  # noqa: E402
+from sites.linku import build as LINKU  # noqa: E402
+from sites.sky import build as SKY  # noqa: E402
 
 PREVIEW = bool(os.environ.get("PREVIEW"))
 BASE_URL = os.environ.get("BASE_URL", "https://godrazy7174.github.io/")
@@ -149,7 +151,7 @@ HEADER = ('<header class="top"><a class="logo" href="index.html" aria-label="뭐
           '<a class="top-link" href="index.html#tests">테스트 목록</a></div></header>')
 FOOTER = ('<footer class="foot"><nav aria-label="사이트 정보"><a href="about.html">소개</a>'
           '<a href="privacy.html">개인정보처리방침</a>'
-          f'<a href="{GALAE_URL}">밸런스 게임 갈래</a></nav>'
+          f'<a href="{GALAE_URL}">밸런스 게임 갈래</a><a href="{BASE_URL}linku/">링쿠</a><a href="{BASE_URL}sky/">하늘봐</a></nav>'
           '<p>© 2026 뭐나와. 모든 테스트는 재미로 봐 주세요.</p></footer>')
 
 
@@ -221,6 +223,32 @@ def galae_card():
             "</div>")
 
 
+SKY_ART = ('<svg class="mini" viewBox="0 0 120 44" aria-hidden="true">'
+           '<path class="mini-whale" d="M6 30c6-9 19-13.5 31-11 7 1.4 12 5 14.6 9.3l6-5c-.2 3.6-1.5 6.5-3.4 8.4 2 1.8 3.2 4.6 3.4 8l-6.1-4.3'
+           'c-3.7 4.7-10.4 7.4-18.4 7.4C19.6 42.8 9.7 38.6 6 30z"/><circle class="mini-eye" cx="15.5" cy="29.4" r="1.8"/>'
+           '<circle class="mini-moon" cx="104" cy="13" r="8"/><circle class="mini-cut" cx="100.6" cy="11.2" r="7.3"/></svg>')
+LINKU_ART = ('<svg class="mini" viewBox="0 0 120 44" aria-hidden="true">'
+             '<path class="mini-blob" d="M22 37c-9 0-14-6-12-13.5C12 15 20 10 29 11c9.4 1 14.6 8 13.4 15.4C41.3 33.6 34 37 22 37z"/>'
+             '<circle class="mini-eye" cx="23" cy="22" r="2"/><circle class="mini-eye" cx="31" cy="22" r="2"/>'
+             '<path class="mini-link" d="M50 36H114"/></svg>')
+
+
+def sister_cards():
+    cards = [
+        (SKY_ART, "같이 운영하는 새 사이트", f"{BASE_URL}sky/", "하늘봐",
+         "지금 서울 하늘이 실제 그대로 떠 있어요. 하루 한 번 하늘고래가, 일주일에 한 번 청룡이 지나가요.",
+         "같은 순간엔 모두 같은 하늘", "하늘 보러 가기"),
+        (LINKU_ART, "같이 운영하는 새 사이트", f"{BASE_URL}linku/", "링쿠",
+         "친구가 보낸 링크를 누르면 알이 깨어나요. 사람을 거칠수록 세대가 쌓이고 모습이 조금씩 바뀌어요.",
+         "링크로 번식하는 생물", "알 깨우러 가기"),
+    ]
+    return "\n".join(
+        f'<div class="tcard tcard--galae sticker sticker--fill">{art}<p class="tcard-kicker">{e(k)}</p>'
+        f'<h3 class="tcard-title"><a class="tcard-main" href="{url}">{e(title)}</a></h3><p class="tcard-sub">{e(sub)}</p>'
+        f'<p class="tcard-meta"><span>{e(meta)}</span><span class="tcard-go" aria-hidden="true">{e(go)}</span></p></div>'
+        for art, k, url, title, sub, meta, go in cards)
+
+
 def type_grid(t, current=None):
     order = t["order"]
     cols = {12: "", 10: " cols-2", 20: " cols-4"}.get(len(order), "")
@@ -251,6 +279,7 @@ def build_home():
 <section id="tests" class="tests" aria-label="테스트 목록">
 {cards}
 {galae_card()}
+{sister_cards()}
 </section>
 <section class="blurb">
   <h2>{e(H["about_title"])}</h2>
@@ -702,6 +731,10 @@ def main():
         build_year_result(YEAR, rid)
     build_docs()
     make_images()
+    ctx = {"OUT": OUT, "BASE_URL": BASE_URL, "PREVIEW": PREVIEW, "ADSENSE_CLIENT": ADSENSE_CLIENT,
+           "CONTACT_EMAIL": CONTACT_EMAIL, "ad": ad, "TODAY": TODAY}
+    PAGES.extend(LINKU.build(ctx))
+    PAGES.extend(SKY.build(ctx))
     write_misc()
     n = len(os.listdir(OUT))
     print(f"built {n} files → {OUT}  (preview={PREVIEW}, base={BASE_URL}, adsense={'on' if ADSENSE_CLIENT else 'off'})")

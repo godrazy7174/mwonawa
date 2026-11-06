@@ -196,6 +196,9 @@ a.bubble--me { text-decoration: none; font-weight: 700; display: inline-flex; al
 .fork path { fill: none; stroke-width: 6; stroke-linecap: round; }
 .fork .fork-a { stroke: var(--yolk); } .fork .fork-b { stroke: var(--mint); }
 .fork circle { fill: var(--fill-ink); stroke: var(--fill); stroke-width: 3; }
+.mini { width: 120px; height: 44px; margin-bottom: 4px; }
+.mini-whale { fill: #7FA8D6; } .mini-eye { fill: var(--fill); } .mini-moon { fill: #F2C14E; } .mini-cut { fill: var(--fill); }
+.mini-blob { fill: var(--yolk); } .mini-link { fill: none; stroke: #8FA7FF; stroke-width: 4; stroke-linecap: round; }
 .tcard-mine { position: relative; z-index: 1; align-self: flex-start; display: none; margin-top: 8px; font-size: 0.875rem; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .tcard.is-done .tcard-mine { display: inline-block; }
 .tcard-stamp {

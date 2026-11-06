@@ -1,0 +1,161 @@
+/* 하늘봐. 아래 종이(sheet)는 지금 하늘의 시간대를 따라 낮, 노을, 밤 빛깔로 바뀐다. */
+:root {
+  --paper: #EAF3FB; --ink: #13233A; --muted: #4A607C; --accent: #1F5FA8; --line: #BCD0E6; --hl: #D6E7F7;
+  --sunred: #C3343C; --satblue: #2558C2; --moonlit: #C9971A;
+  --night: #0F1830;
+  --font: "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --display: "Song Myung", "Gowun Dodum", serif;
+  color-scheme: light;
+}
+:root[data-sky="dusk"] { --paper: #F3E6EC; --ink: #2E1A33; --muted: #6B4D62; --accent: #A23B5C; --line: #DCC3CF; --hl: #EBD5DF; --sunred: #B8323A; --satblue: #3E56B0; --moonlit: #B9861A; }
+:root[data-sky="night"] { --paper: #0F1830; --ink: #E6ECF7; --muted: #A7B4D3; --accent: #FFD36B; --line: #2C3D66; --hl: #1A2747; --sunred: #FF8F8F; --satblue: #9DBBFF; --moonlit: #FBE7A6; color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  :root[data-sky="day"], :root:not([data-sky]) { --paper: #0E2236; --ink: #E3EEF9; --muted: #A2B6CC; --accent: #8CC4FF; --line: #24415F; --hl: #16304A; --sunred: #FF9090; --satblue: #9CC0FF; --moonlit: #FBE7A6; color-scheme: dark; }
+  :root[data-sky="dusk"] { --paper: #21142A; --ink: #F2E5EE; --muted: #C5A9BC; --accent: #F29BB8; --line: #3F2B4A; --hl: #2D1C38; --sunred: #FF9A9A; --satblue: #A9B8FF; --moonlit: #FBE7A6; color-scheme: dark; }
+}
+
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font); font-size: 17px; line-height: 1.75; word-break: keep-all; overflow-wrap: break-word;
+  transition: background-color .8s ease, color .8s ease;
+}
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; }
+
+/* ---------- 살아 있는 하늘 ---------- */
+.sky { position: relative; height: calc(100svh - 64px); min-height: 440px; max-height: 980px; background: var(--night); overflow: hidden; color: #fff; }
+@supports not (height: 100svh) { .sky { height: calc(100vh - 64px); } }
+.sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; -webkit-tap-highlight-color: transparent; }
+.sky canvas:active { cursor: grabbing; }
+.sky-top {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px; pointer-events: none;
+}
+.sky-top > * { pointer-events: auto; }
+.mark { font-family: var(--display); font-size: 28px; line-height: 1; color: #fff; text-decoration: none; text-shadow: 0 1px 3px rgba(5, 10, 30, .45); letter-spacing: -0.5px; }
+.mark:focus-visible, .sky .btn:focus-visible, .snd:focus-visible { outline-color: #fff; }
+.snd {
+  color: #fff; background: rgba(9, 16, 40, .28); border: 1.5px solid rgba(255, 255, 255, .78); border-radius: 6px;
+  padding: 5px 11px; font-size: 14px; line-height: 1.4; cursor: pointer; text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+}
+.snd[aria-pressed="true"] { background: #FFE9A8; color: #1B2236; border-color: #FFE9A8; text-shadow: none; }
+.from {
+  position: absolute; top: calc(58px + env(safe-area-inset-top)); left: 16px; right: 16px; margin: 0; max-width: 34rem;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 15px; line-height: 1.6;
+}
+.sky-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(6, 10, 26, .66), rgba(6, 10, 26, .32) 60%, rgba(6, 10, 26, 0)); pointer-events: none;
+}
+.sky-bottom > * { pointer-events: auto; max-width: 38rem; }
+.status { margin: 0 0 10px; font-size: 15px; line-height: 1.55; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); font-variant-numeric: tabular-nums; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.btn { min-height: 44px; padding: 10px 16px; border-radius: 8px; font-size: 16px; line-height: 1.3; cursor: pointer; }
+.btn.sun { background: #FFE9A8; color: #1B2236; border: 0; }
+.btn.line { background: rgba(9, 16, 40, .22); color: #fff; border: 1.5px solid rgba(255, 255, 255, .85); }
+.btn.ink { background: var(--accent); color: var(--paper); border: 0; }
+.dir { margin: 0; font-size: 13px; opacity: .82; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+.nojs { position: absolute; left: 16px; right: 16px; top: 45%; margin: 0; text-align: center; }
+
+/* ---------- 다른 페이지 위의 띠 하늘 ---------- */
+.band { position: relative; height: 128px; background: var(--night); overflow: hidden; }
+.band-sky, .band canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.band .mark { position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 16px; }
+
+/* ---------- 종이 ---------- */
+.sheet { max-width: 38rem; margin: 0 auto; padding: 28px 16px 36px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: -0.3px; text-wrap: balance; }
+h1 { font-size: 34px; line-height: 1.3; margin: 0 0 12px; }
+h2 { font-size: 24px; line-height: 1.4; margin: 44px 0 12px; }
+h3 { font-size: 20px; line-height: 1.4; margin: 28px 0 8px; }
+p { margin: 0 0 14px; }
+.lede { font-size: 18px; }
+.note { font-size: 14px; color: var(--muted); }
+.crumb { font-size: 14px; margin: 0 0 6px; }
+.pager { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; margin-top: 28px; }
+
+.forecast ul, .upcoming ul, .recent { list-style: none; margin: 0 0 12px; padding: 0; }
+.forecast li, .upcoming li, .recent li { padding: 9px 0; border-bottom: 1px dotted var(--line); }
+.forecast li:first-child, .upcoming li:first-child { border-top: 1px dotted var(--line); }
+.upcoming b { display: inline-block; min-width: 3.6em; font-weight: 400; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+table { border-collapse: collapse; }
+.alm, .facts, .tally { width: 100%; margin: 0 0 14px; }
+.alm tr, .facts tr, .tally tr { border-bottom: 1px dotted var(--line); }
+.alm tr:first-child, .facts tr:first-child, .tally tr:first-child { border-top: 1px dotted var(--line); }
+.alm th, .facts th, .tally th { text-align: left; font-weight: 400; color: var(--muted); padding: 9px 12px 9px 0; vertical-align: top; white-space: nowrap; }
+.alm td, .tally td { text-align: right; padding: 9px 0; font-variant-numeric: tabular-nums; }
+.facts td { padding: 9px 0; }
+.facts.phases { width: auto; min-width: 60%; }
+.facts.phases td { padding-left: 4px; }
+caption { caption-side: top; text-align: left; color: var(--muted); font-size: 14px; padding: 0 0 6px; }
+
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px 14px; padding: 0 16px; }
+.grid { font-size: 14px; line-height: 1.5; width: 100%; }
+.grid th, .grid td { padding: 7px 10px 7px 0; text-align: left; white-space: nowrap; font-weight: 400; vertical-align: top; }
+.grid thead th { color: var(--muted); border-bottom: 1px solid var(--line); }
+.grid tbody tr { border-bottom: 1px dotted var(--line); }
+.grid td { font-variant-numeric: tabular-nums; }
+.month tbody th { color: var(--ink); }
+.month tbody th span { display: inline-block; margin-left: 4px; color: var(--muted); }
+.month tr.sun th, .month tr.sun th span { color: var(--sunred); }
+.month tr.sat th, .month tr.sat th span { color: var(--satblue); }
+.grid em { display: block; font-style: normal; font-size: 11px; line-height: 1.35; color: var(--accent); white-space: normal; }
+.grid small { display: block; font-size: 12.5px; line-height: 1.45; color: var(--muted); margin-top: 2px; }
+.grid.two th, .grid.two td { white-space: normal; }
+.grid.two tbody th { width: 7.2em; color: var(--ink); }
+.grid.showers tbody th { width: auto; min-width: 8.5em; }
+.grid .num { text-align: right; padding-right: 0; }
+.month th, .month td { padding-right: 9px; }
+.month td:last-child { padding-right: 0; }
+.mi { display: block; }
+.mi .disc { fill: var(--line); }
+.mi .lit { fill: var(--moonlit); }
+tr.today { background: var(--hl); }
+tr.past { opacity: .5; }
+
+.beings { list-style: none; margin: 0; padding: 0; }
+.beings li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.beings li:first-child { border-top: 1px solid var(--line); }
+.beings a { font-family: var(--display); font-size: 21px; line-height: 1.3; }
+.beings .kind { margin-left: 8px; font-size: 13px; color: var(--muted); }
+.beings p { margin: 4px 0 0; font-size: 16px; }
+.months { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+
+.specimen { display: block; width: 100%; height: 240px; margin: 10px 0 22px; border-radius: 10px; background: var(--night); }
+
+.card { margin: 0 0 28px; }
+.card h2 { margin-top: 0; }
+.card img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.card-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.linkish { background: none; border: 0; padding: 6px 2px; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.log .sub { margin: 10px 0 2px; font-size: 14px; color: var(--muted); }
+
+.ad { margin: 36px 0; }
+.ad-label { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+.ad--placeholder { border: 1px dashed var(--line); border-radius: 8px; padding: 22px 12px; text-align: center; color: var(--muted); font-size: 14px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30;
+  width: max-content; max-width: calc(100% - 32px); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 15px; line-height: 1.5;
+}
+
+.foot { max-width: 38rem; margin: 0 auto; padding: 22px 16px calc(44px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.foot nav { display: flex; flex-wrap: wrap; gap: 0 16px; line-height: 2.1; margin-bottom: 6px; }
+.foot p { margin: 8px 0 0; }
+
+@media (min-width: 720px) {
+  /* 넓은 화면에서는 하늘 위 글자도 아래 종이의 글줄에 맞춘다 */
+  .sky-top, .sky-bottom { padding-left: max(16px, calc((100% - 38rem) / 2 + 16px)); padding-right: max(16px, calc((100% - 38rem) / 2 + 16px)); }
+  .from { left: max(16px, calc((100% - 38rem) / 2 + 16px)); }
+  h1 { font-size: 40px; }
+  .band { height: 150px; }
+  .band .mark { left: max(16px, calc((100% - 38rem) / 2 + 16px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}
